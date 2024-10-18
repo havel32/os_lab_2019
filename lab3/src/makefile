@@ -15,10 +15,11 @@ utils.o : utils.h
 find_min_max.o : utils.h find_min_max.h
 	$(CC) -o find_min_max.o -c find_min_max.c $(CFLAGS)
 
-exec_sequetial.0 : exec_sequetial.c
-	$(CC) -o utils.o -c utils.c $(CFLAGS)
+exec_sequential.o : exec_sequential.c
+	$(CC) -o exec_sequential.o -c exec_sequential.c $(CFLAGS)
 
-exec_sequetial : exec_sequetial.o
-	$(CC) -o exec_sequetial exec_sequetial.o $(CFLAGS)
+exec_sequential : exec_sequential.o
+	$(CC) -o exec_sequential exec_sequential.o $(CFLAGS)
 clean :
 	rm utils.o find_min_max.o sequential_min_max parallel_min_max exec_sequential
+
