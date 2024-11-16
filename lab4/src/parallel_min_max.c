@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
   }
 
   while (active_child_processes > 0) {
-    pid_t child_pid = waitpid(-1, NULL, WHOHANG);
+    pid_t child_pid = waitpid(-1, NULL, WNOHANG);
     if (child_pid > 0){
       active_child_processes -= 1;
     }
