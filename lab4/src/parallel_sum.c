@@ -4,42 +4,35 @@
 #include <pthread.h>
 #include <time.h>
 #include <sys/time.h>
+#include <string.h>
+#include "utils.h"
+#include "sum.h"
 
-// Функция для подсчёта времени
-double GetElapsedTime(struct timeval start, struct timeval end) {
-  return (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
-}
-
+// Структура для передачи аргументов в поток
 struct SumArgs {
   int *array;
   int begin;
   int end;
 };
 
-// Функция для подсчёта суммы в заданном диапазоне
-int Sum(const struct SumArgs *args) {
-  int sum = 0;
-  for (int i = args->begin; i < args->end; i++) {
-    sum += args->array[i];
-  }
-  return sum;
+// Функция для подсчёта времени
+double GetElapsedTime(struct timeval start, struct timeval end) {
+  return (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
 }
 
+// Потоковая функция подсчёта суммы
 void *ThreadSum(void *args) {
   struct SumArgs *sum_args = (struct SumArgs *)args;
-  return (void *)(size_t)Sum(sum_args);
-}
-
-// Генерация массива
-void GenerateArray(int *array, size_t size, unsigned int seed) {
-  srand(seed);
-  for (size_t i = 0; i < size; i++) {
-    array[i] = rand() % 100; // Числа от 0 до 99
+  int *partial_sum = malloc(sizeof(int));
+  if (!partial_sum) {
+    printf("Error: memory allocation failed in thread.\n");
+    pthread_exit(NULL);
   }
+  *partial_sum = SumArrayPart(sum_args->array, sum_args->begin, sum_args->end);
+  return (void *)partial_sum;
 }
 
-
-// Парсинг аргументов командной строки
+// Функция для парсинга аргументов командной строки
 int ParseArg(const char *arg_name, const char *arg_value, uint32_t *result) {
   char *end;
   long value = strtol(arg_value, &end, 10);
@@ -60,7 +53,6 @@ int main(int argc, char **argv) {
   uint32_t threads_num = 0;
   uint32_t array_size = 0;
   uint32_t seed = 0;
-  pthread_t threads[threads_num];
 
   // Парсинг аргументов
   for (int i = 1; i < argc; i += 2) {
@@ -82,18 +74,16 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  //ЗАПОЛНЯЕМ МАССИВ И ПРОВЕРЯЕМ НА ОШИБКИ
+  // Генерация массива
   int *array = malloc(sizeof(int) * array_size);
-    if (!array) {
+  if (!array) {
     printf("Error: memory allocation failed.\n");
     return 1;
   }
   GenerateArray(array, array_size, seed);
 
-  struct SumArgs args[threads_num];
-
-
   // Определяем диапазоны для потоков
+  struct SumArgs args[threads_num];
   int chunk_size = array_size / threads_num;
   for (uint32_t i = 0; i < threads_num; i++) {
     args[i].array = array;
@@ -101,29 +91,34 @@ int main(int argc, char **argv) {
     args[i].end = (i == threads_num - 1) ? array_size : (i + 1) * chunk_size;
   }
 
+  pthread_t threads[threads_num];
+
   // Засекаем время выполнения
   struct timeval start_time, end_time;
-  gettimeofday(&start_time, NULL);  // Засекаем время начала
+  gettimeofday(&start_time, NULL);
 
-
+  // Создание потоков
   for (uint32_t i = 0; i < threads_num; i++) {
-    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args)) {
+    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args[i])) {
       printf("Error: pthread_create failed!\n");
+      free(array);
       return 1;
     }
   }
 
+  // Сбор результатов
   int total_sum = 0;
   for (uint32_t i = 0; i < threads_num; i++) {
-    int sum = 0;
-    pthread_join(threads[i], (void **)&sum);
-    total_sum += sum;
+    int *partial_sum;
+    pthread_join(threads[i], (void **)&partial_sum);
+    total_sum += *partial_sum;
+    free(partial_sum);
   }
 
-  // Засекаем время окончания
-  gettimeofday(&end_time, NULL);  // Засекаем время конца
+  gettimeofday(&end_time, NULL);
   double elapsed_time = GetElapsedTime(start_time, end_time);
-  // Вывод результатов
+
+  // Вывод результата
   printf("Total sum: %d\n", total_sum);
   printf("Elapsed time: %.6f seconds\n", elapsed_time);
 

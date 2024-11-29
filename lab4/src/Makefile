@@ -1,36 +1,18 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -pedantic -g
-SRC_DIR = src
-OBJ_DIR = obj
-BIN_DIR = bin
+CFLAGS = -Wall -Wextra -pthread -std=c99
+TARGET = psum
+SRC = parallel_sum.c utils.c sum.c
+OBJS = $(SRC:.c=.o)
 
-PROGRAMS = $(BIN_DIR)/process_memory $(BIN_DIR)/parallel_min_max
+all: $(TARGET)
 
-$(OBJ_DIR):
-	mkdir -p $@
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
 
-$(BIN_DIR):
-	mkdir -p $@
-
-all: $(OBJ_DIR) $(BIN_DIR) $(PROGRAMS)
-
-# Задание 1: Сборка process_memory
-$(BIN_DIR)/process_memory: $(SRC_DIR)/process_memory.c
-	$(CC) $(CFLAGS) $< -o $@
-
-# Задание 3: Сборка parallel_min_max
-$(BIN_DIR)/parallel_min_max: $(SRC_DIR)/parallel_min_max.c $(SRC_DIR)/find_min_max.o $(SRC_DIR)/utils.o
-	$(CC) $(CFLAGS) $^ -o $@
-
-# Компиляция зависимостей
-$(SRC_DIR)/find_min_max.o: $(SRC_DIR)/find_min_max.c $(SRC_DIR)/find_min_max.h
+%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
-
-$(SRC_DIR)/utils.o: $(SRC_DIR)/utils.c $(SRC_DIR)/utils.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
 
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR) $(SRC_DIR)/*.o
+	rm -f $(OBJS) $(TARGET)
 
 .PHONY: all clean

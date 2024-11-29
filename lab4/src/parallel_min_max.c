@@ -16,7 +16,7 @@
 #include "utils.h"
 
 #include <signal.h>
-int* child_pids = NULL; // Massive for saving PID`s of child processes
+int* child_pids = NULL; // Massive for saving PID`s of child processes 
 int pnum = 0; // amount of processes
 
 // Process signal SIGALRM
